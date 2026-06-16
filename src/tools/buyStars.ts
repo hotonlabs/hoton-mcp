@@ -78,7 +78,7 @@ export function registerStarsTools(server: any, deps: ToolDeps, wrap: (fn: () =>
       inputSchema: {
         recipient: z.string().describe("Telegram username, with or without @"),
         amount: z.number().int().min(50).describe("Number of stars to send (minimum 50)"),
-        payToken: payTokenSchema.describe("Pay with GRAM (TON) or USDT"),
+        payToken: payTokenSchema.describe("Pay with GRAM or USDT"),
         referrer: referrerField,
         wallet: walletField,
       },
@@ -94,7 +94,7 @@ export function registerStarsTools(server: any, deps: ToolDeps, wrap: (fn: () =>
       inputSchema: {
         recipients: z.array(z.string()).min(1).max(10).describe("1–10 Telegram usernames"),
         amountEach: z.number().int().min(50).describe("Stars sent to EACH recipient (minimum 50)"),
-        payToken: payTokenSchema.describe("Pay with GRAM (TON) or USDT"),
+        payToken: payTokenSchema.describe("Pay with GRAM or USDT"),
         referrer: referrerField,
         wallet: walletField,
       },

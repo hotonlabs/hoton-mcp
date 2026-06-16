@@ -63,18 +63,18 @@ export function registerTopupTools(server: any, deps: ToolDeps, wrap: (fn: () =>
     .optional();
 
   server.registerTool(
-    "hoton_topup_ton",
+    "hoton_topup_gram",
     {
       title: "Top up a Telegram account with GRAM",
       description:
-        "Build an order to top up one Telegram account with GRAM (TON). Returns messages[] to sign with @ton/mcp. GRAM only.",
+        "Build an order to top up one Telegram account with GRAM. Returns messages[] to sign with @ton/mcp. GRAM only.",
       inputSchema: { recipient: z.string(), amount: amountSchema, referrer: referrerField, wallet: walletField },
     },
     async (args: any) => wrap(() => handleTopupTon(args, deps)),
   );
 
   server.registerTool(
-    "hoton_topup_ton_bulk",
+    "hoton_topup_gram_bulk",
     {
       title: "Top up many Telegram accounts with GRAM",
       description:

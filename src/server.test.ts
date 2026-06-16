@@ -35,8 +35,8 @@ describe("buildServer", () => {
     );
     expect(names.sort()).toEqual([
       "hoton_buy_premium", "hoton_buy_premium_bulk", "hoton_buy_stars", "hoton_buy_stars_bulk",
-      "hoton_confirm", "hoton_find_recipient", "hoton_status", "hoton_topup_ton",
-      "hoton_topup_ton_bulk", "hoton_use_referrer", "hoton_use_wallet",
+      "hoton_confirm", "hoton_find_recipient", "hoton_status", "hoton_topup_gram",
+      "hoton_topup_gram_bulk", "hoton_use_referrer", "hoton_use_wallet",
     ]);
   });
 });

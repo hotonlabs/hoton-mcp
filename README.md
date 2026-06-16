@@ -1,6 +1,6 @@
 # hoton-mcp
 
-An MCP server that lets an AI agent buy Telegram **Stars**, **Premium**, and **TON top-ups** (single + bulk) on hoton.tg from a prompt.
+An MCP server that lets an AI agent buy Telegram **Stars**, **Premium**, and **GRAM top-ups** (single + bulk) on hoton.tg from a prompt.
 
 It is **keyless**: it only builds unsigned orders and confirms them. Paying is done by TON's official **`@ton/mcp`** agentic wallet. You run both side by side.
 
@@ -48,7 +48,7 @@ Env vars:
 
 ## Tools
 
-`hoton_use_wallet`, `hoton_use_referrer`, `hoton_find_recipient`, `hoton_buy_stars`, `hoton_buy_stars_bulk`, `hoton_buy_premium`, `hoton_buy_premium_bulk`, `hoton_topup_ton`, `hoton_topup_ton_bulk`, `hoton_confirm`, `hoton_status`.
+`hoton_use_wallet`, `hoton_use_referrer`, `hoton_find_recipient`, `hoton_buy_stars`, `hoton_buy_stars_bulk`, `hoton_buy_premium`, `hoton_buy_premium_bulk`, `hoton_topup_gram`, `hoton_topup_gram_bulk`, `hoton_confirm`, `hoton_status`.
 
 ## Referrals
 
