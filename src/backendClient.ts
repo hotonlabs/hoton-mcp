@@ -26,6 +26,7 @@ export interface BackendClient {
   getHealth(): Promise<{ ok: boolean; error?: string }>;
   resolveName(name: string): Promise<{ address?: string }>;
   searchRecipient(product: Product, username: string, months?: string): Promise<RecipientSearchResponse>;
+  // NOTE: single-buy endpoints use the backend's misspelled `receipientId` field; bulk uses `recipients[].recipientId`. Do not "fix" the spelling — it must match the backend.
   buyStars(body: { account: string; device: string; receipientId: string; amount: string; paymentMethod: "ton" | "usdt"; recipientUsername?: string; recipientName?: string; referrer?: string }): Promise<BuyResponse>;
   buyStarsBulk(body: { account: string; device: string; amount: string; paymentMethod: "ton" | "usdt"; recipients: BulkRecipient[]; referrer?: string }): Promise<BuyResponse>;
   buyPremium(body: { account: string; device: string; receipientId: string; months: string; paymentMethod: "ton" | "usdt"; recipientUsername?: string; recipientName?: string; referrer?: string }): Promise<BuyResponse>;
@@ -36,16 +37,29 @@ export interface BackendClient {
   confirmReferral(body: { purchaseId: string; buyerWallet: string; txHash: string }): Promise<unknown>;
 }
 
-export function createBackendClient(baseUrl: string, fetchFn: typeof fetch = fetch): BackendClient {
+export function createBackendClient(baseUrl: string, fetchFn: typeof fetch = fetch, timeoutMs = 60000): BackendClient {
   async function request<T>(method: "GET" | "POST", path: string, body?: unknown): Promise<T> {
-    const res = await fetchFn(`${baseUrl}${path}`, {
-      method,
-      headers: body ? { "Content-Type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    const data = (await res.json().catch(() => ({}))) as { error?: string };
-    if (!res.ok) throw new BackendError(data?.error || `Request failed (${res.status})`, res.status);
-    return data as T;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetchFn(`${baseUrl}${path}`, {
+        method,
+        headers: body ? { "Content-Type": "application/json" } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
+        signal: controller.signal,
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) throw new BackendError(data?.error || `Request failed (${res.status})`, res.status);
+      return data as T;
+    } catch (err) {
+      if (err instanceof BackendError) throw err;
+      if (err instanceof Error && err.name === "AbortError") {
+        throw new BackendError(`Backend request timed out after ${timeoutMs}ms`, 504);
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   const searchPath: Record<Product, string> = {

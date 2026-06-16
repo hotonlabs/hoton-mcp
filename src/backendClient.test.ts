@@ -50,4 +50,10 @@ describe("backendClient", () => {
     await client.searchRecipient("premium", "alice", "6");
     expect((fetchFn as any).mock.calls[0][0]).toBe("http://x/premium-recipient?userName=alice&months=6");
   });
+
+  it("converts an aborted/timed-out request into a BackendError(504)", async () => {
+    const fetchFn = vi.fn(async () => { const e = new Error("aborted"); e.name = "AbortError"; throw e; }) as unknown as typeof fetch;
+    const client = createBackendClient("http://x", fetchFn, 5);
+    await expect(client.getHealth()).rejects.toMatchObject({ name: "BackendError", status: 504 });
+  });
 });
