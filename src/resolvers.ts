@@ -4,6 +4,15 @@ import { ToolError } from "./tools/shared.js";
 
 export interface ResolvedRecipient { recipientId: string; name: string; username: string }
 
+/**
+ * Friendly "couldn't find that recipient" message, shared by find_recipient and the
+ * buy resolver so they never drift. The common gotcha (e.g. @durov) is that Stars/
+ * Premium only go to a *personal* account, never a channel/bot/group.
+ */
+export function recipientNotFoundMessage(username: string): string {
+  return `@${username} — not found. Stars & Premium can only be sent to a personal Telegram account — not channels, bots, or groups. Check the spelling, or try the person's personal @username.`;
+}
+
 export async function resolveRecipient(
   client: BackendClient,
   username: string,
@@ -15,7 +24,7 @@ export async function resolveRecipient(
   const res = await client.searchRecipient(product, clean, months);
   const id = res.found?.recipient;
   if (!res.ok || !res.found || !id) {
-    throw new ToolError(res.error || `No Telegram user @${clean} could be found.`);
+    throw new ToolError(recipientNotFoundMessage(clean));
   }
   return { recipientId: id, name: res.found.name || clean, username: clean };
 }

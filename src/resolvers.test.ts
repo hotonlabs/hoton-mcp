@@ -20,9 +20,9 @@ describe("resolveRecipient", () => {
     expect(client.searchRecipient).toHaveBeenCalledWith("premium", "bob", "6");
   });
 
-  it("throws a friendly ToolError when not found", async () => {
+  it("throws a friendly, explanatory ToolError when not found", async () => {
     const client = fakeClient({ searchRecipient: vi.fn(async () => ({ ok: false, found: null })) });
-    await expect(resolveRecipient(client, "ghost", "stars")).rejects.toThrowError(/No Telegram user/);
+    await expect(resolveRecipient(client, "ghost", "stars")).rejects.toThrowError(/not found.*personal Telegram account/s);
   });
 });
 

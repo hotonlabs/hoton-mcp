@@ -13,9 +13,10 @@ describe("handleFindRecipient", () => {
     const r = await handleFindRecipient({ username: "@alice", product: "stars" }, d);
     expect(r).toMatchObject({ found: true, recipientId: "r1", name: "Alice", username: "alice" });
   });
-  it("reports not-found cleanly (no throw)", async () => {
+  it("reports not-found cleanly (no throw) with the explanatory message", async () => {
     const { d } = deps(null);
     const r = await handleFindRecipient({ username: "ghost", product: "stars" }, d);
     expect(r.found).toBe(false);
+    expect(r.message).toContain("personal Telegram account");
   });
 });

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { ToolDeps } from "./wallet.js";
+import { recipientNotFoundMessage } from "../resolvers.js";
 
 export async function handleFindRecipient(
   args: { username: string; product: "stars" | "premium" | "ton"; months?: string },
@@ -9,7 +10,7 @@ export async function handleFindRecipient(
   const res = await deps.client.searchRecipient(args.product, clean, args.months);
   const id = res.found?.recipient;
   if (!res.ok || !res.found || !id) {
-    return { found: false, username: clean, message: res.error || `No Telegram user @${clean} found.` };
+    return { found: false, username: clean, message: recipientNotFoundMessage(clean) };
   }
   return { found: true, recipientId: id, name: res.found.name || clean, photo: res.found.photo ?? null, username: clean };
 }
