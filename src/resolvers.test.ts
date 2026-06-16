@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { resolveRecipient, resolveReferrer } from "./resolvers.js";
-import type { BackendClient } from "./backendClient.js";
+import { BackendError, type BackendClient } from "./backendClient.js";
 
 function fakeClient(over: Partial<BackendClient>): BackendClient {
   return { searchRecipient: vi.fn(), resolveName: vi.fn(), ...over } as unknown as BackendClient;
@@ -43,5 +43,10 @@ describe("resolveReferrer", () => {
     expect(await resolveReferrer(fakeClient({}), "")).toBeNull();
     const client = fakeClient({ resolveName: vi.fn(async () => ({})) });
     expect(await resolveReferrer(client, "nobody")).toBeNull();
+  });
+
+  it("returns null (proceeds) when the name lookup 404s instead of failing the purchase", async () => {
+    const client = fakeClient({ resolveName: vi.fn(async () => { throw new BackendError("Not found", 404); }) });
+    await expect(resolveReferrer(client, "typoname")).resolves.toBeNull();
   });
 });

@@ -1,4 +1,4 @@
-import type { BackendClient, Product } from "./backendClient.js";
+import { BackendError, type BackendClient, type Product } from "./backendClient.js";
 import { parseReferrerInput } from "./format.js";
 import { ToolError } from "./tools/shared.js";
 
@@ -25,6 +25,13 @@ export async function resolveReferrer(client: BackendClient, input: string): Pro
   const parsed = parseReferrerInput(input);
   if (!parsed) return null;
   if (parsed.kind === "address") return parsed.value;
-  const res = await client.resolveName(parsed.value);
-  return res.address || null;
+  try {
+    const res = await client.resolveName(parsed.value);
+    return res.address || null;
+  } catch (err) {
+    // Unknown short name (backend 404) or any resolve failure → no referrer, proceed.
+    // Referral attachment is best-effort and must never block a purchase.
+    if (err instanceof BackendError) return null;
+    throw err;
+  }
 }
