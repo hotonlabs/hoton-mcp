@@ -12,11 +12,18 @@ export async function handleConfirm(
 
   await deps.client.confirmHistory(args.historyId, { buyerWallet, txHash: args.txHash });
   let referralConfirmed = false;
+  let referralError: string | undefined;
   if (args.purchaseId) {
-    await deps.client.confirmReferral({ purchaseId: args.purchaseId, buyerWallet, txHash: args.txHash });
-    referralConfirmed = true;
+    try {
+      await deps.client.confirmReferral({ purchaseId: args.purchaseId, buyerWallet, txHash: args.txHash });
+      referralConfirmed = true;
+    } catch (err) {
+      // Referral tracking is best-effort: the on-chain fee split already happened at
+      // payment time, so a tracking failure here does not undo the referrer's reward.
+      referralError = err instanceof Error ? err.message : String(err);
+    }
   }
-  return { ok: true, historyConfirmed: true, referralConfirmed };
+  return { ok: true, historyConfirmed: true, referralConfirmed, ...(referralError ? { referralError } : {}) };
 }
 
 export function registerConfirmTool(server: any, deps: ToolDeps, wrap: (fn: () => Promise<unknown>) => Promise<any>) {
@@ -25,7 +32,7 @@ export function registerConfirmTool(server: any, deps: ToolDeps, wrap: (fn: () =
     {
       title: "Confirm a completed purchase",
       description:
-        "Call after @ton/mcp send_raw_transaction returns a txHash. Records the purchase in history and credits any referral. Use the historyId and purchaseId from the buy tool's result.",
+        "Call after @ton/mcp send_raw_transaction returns a txHash. Records the purchase in history and credits any referral. Use the historyId and purchaseId from the buy tool's result. The purchase already settled on-chain when it was signed, so this only records bookkeeping — a failure here never means you should buy again.",
       inputSchema: {
         historyId: z.string().describe("historyId from the buy tool result"),
         txHash: z.string().describe("Transaction hash from send_raw_transaction"),

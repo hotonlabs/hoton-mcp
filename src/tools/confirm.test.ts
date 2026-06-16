@@ -32,4 +32,13 @@ describe("handleConfirm", () => {
     const empty = { ...d, session: createSession() };
     await expect(handleConfirm({ historyId: "h1", txHash: "TX" }, empty as any)).rejects.toThrow(/wallet/i);
   });
+
+  it("still succeeds when referral confirmation fails (purchase already settled)", async () => {
+    const d = makeDeps();
+    (d.client.confirmReferral as any).mockRejectedValueOnce(new Error("referral backend down"));
+    const r = await handleConfirm({ historyId: "h1", purchaseId: "p1", txHash: "TX" }, d);
+    expect(r.historyConfirmed).toBe(true);
+    expect(r.referralConfirmed).toBe(false);
+    expect((r as any).referralError).toContain("referral backend down");
+  });
 });
