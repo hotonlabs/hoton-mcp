@@ -17,6 +17,12 @@ describe("makeWrap", () => {
     expect(res.isError).toBe(true);
     expect(res.content[0].text).toContain("nope");
   });
+  it("returns isError for any unexpected error, not just ToolError", async () => {
+    const wrap = makeWrap();
+    const res = await wrap(async () => { throw new Error("network timeout"); });
+    expect(res.isError).toBe(true);
+    expect(res.content[0].text).toContain("network timeout");
+  });
 });
 
 describe("buildServer", () => {
