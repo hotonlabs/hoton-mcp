@@ -77,7 +77,7 @@ export function registerStarsTools(server: any, deps: ToolDeps, wrap: (fn: () =>
       description: "Build an order to send Stars to one Telegram user. Returns messages[] to sign with @ton/mcp. Extract a referrer from the user's prompt if they named one.",
       inputSchema: {
         recipient: z.string().describe("Telegram username, with or without @"),
-        amount: z.number().int().min(1).describe("Number of stars (site min 50)"),
+        amount: z.number().int().min(50).describe("Number of stars to send (minimum 50)"),
         payToken: payTokenSchema.describe("Pay with GRAM (TON) or USDT"),
         referrer: referrerField,
         wallet: walletField,
@@ -93,8 +93,8 @@ export function registerStarsTools(server: any, deps: ToolDeps, wrap: (fn: () =>
       description: "Build ONE order sending the same star amount to 1–10 Telegram users. Returns messages[] (one per recipient) to sign with @ton/mcp in a single transaction.",
       inputSchema: {
         recipients: z.array(z.string()).min(1).max(10).describe("1–10 Telegram usernames"),
-        amountEach: z.number().int().min(1).describe("Stars sent to EACH recipient"),
-        payToken: payTokenSchema,
+        amountEach: z.number().int().min(50).describe("Stars sent to EACH recipient (minimum 50)"),
+        payToken: payTokenSchema.describe("Pay with GRAM (TON) or USDT"),
         referrer: referrerField,
         wallet: walletField,
       },
