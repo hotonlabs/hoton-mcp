@@ -1,25 +1,23 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
+import { loadConfig } from "./config.js";
 
 describe("loadConfig", () => {
-  const saved = { ...process.env };
-  beforeEach(() => { delete process.env.HOTON_BACKEND_URL; delete process.env.HOTON_MAX_ORDER; });
-  afterEach(() => { process.env = { ...saved }; });
+  afterEach(() => { vi.unstubAllEnvs(); });
 
-  it("defaults the backend URL to Railway", async () => {
-    const { loadConfig } = await import("./config.js");
+  it("defaults the backend URL to Railway", () => {
+    vi.stubEnv("HOTON_BACKEND_URL", "");
     expect(loadConfig().backendUrl).toBe("https://hoton.up.railway.app");
   });
 
-  it("strips a trailing slash from a custom backend URL", async () => {
-    process.env.HOTON_BACKEND_URL = "http://localhost:3000/";
-    const { loadConfig } = await import("./config.js");
+  it("strips a trailing slash from a custom backend URL", () => {
+    vi.stubEnv("HOTON_BACKEND_URL", "http://localhost:3000/");
     expect(loadConfig().backendUrl).toBe("http://localhost:3000");
   });
 
-  it("parses HOTON_MAX_ORDER as a number, undefined when unset", async () => {
-    const { loadConfig } = await import("./config.js");
+  it("parses HOTON_MAX_ORDER as a number, undefined when unset", () => {
+    vi.stubEnv("HOTON_MAX_ORDER", "");
     expect(loadConfig().maxOrder).toBeUndefined();
-    process.env.HOTON_MAX_ORDER = "5";
+    vi.stubEnv("HOTON_MAX_ORDER", "5");
     expect(loadConfig().maxOrder).toBe(5);
   });
 });
