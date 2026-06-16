@@ -25,7 +25,7 @@ export function parseReferrerInput(input: string): ReferrerInput | null {
   if (!trimmed) return null;
   if (isValidTonAddress(trimmed)) return { kind: "address", value: trimmed };
 
-  const linkMatch = trimmed.match(/(?:https?:\/\/)?hoton\.tg\/([A-Za-z0-9_-]{1,32})/i);
+  const linkMatch = trimmed.match(/^(?:https?:\/\/)?hoton\.tg\/([A-Za-z0-9_-]{1,32})/i);
   if (linkMatch) return { kind: "name", value: linkMatch[1].toLowerCase() };
 
   if (/^[A-Za-z0-9_-]{1,32}$/.test(trimmed)) return { kind: "name", value: trimmed.toLowerCase() };

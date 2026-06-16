@@ -39,4 +39,7 @@ describe("parseReferrerInput", () => {
     expect(parseReferrerInput("")).toBeNull();
     expect(parseReferrerInput("   ")).toBeNull();
   });
+  it("does not extract from a look-alike host", () => {
+    expect(parseReferrerInput("nothoton.tg/alice")).toBeNull();
+  });
 });
