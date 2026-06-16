@@ -45,6 +45,17 @@ describe("buildBuyResult", () => {
   it("throws ToolError when the backend response has no transaction", () => {
     expect(() => buildBuyResult({ error: "boom" }, "GRAM", "lbl")).toThrowError(ToolError);
   });
+
+  it("caps on the exact total, not the truncated display value", () => {
+    // 1.00005 GRAM displays as "1.0000" but must still exceed a cap of 1
+    const resp: BuyResponse = { transaction: { validUntil: 5, messages: [{ address: "a", amount: "1000050000", payload: "x" }] }, historyId: "h" };
+    expect(() => buildBuyResult(resp, "GRAM", "lbl", 1)).toThrowError(ToolError);
+  });
+
+  it("falls back to fragmentJettonDisplay for USDT when totalJettonDisplay is absent", () => {
+    const usdt: BuyResponse = { transaction: { validUntil: 5, messages: [{ address: "a", amount: "80000000", payload: "x" }] }, historyId: "h", jettonProxy: { fragmentJettonDisplay: "2.5" } };
+    expect(buildBuyResult(usdt, "USDT", "lbl").price).toBe("2.5 USDT");
+  });
 });
 
 describe("toContent", () => {

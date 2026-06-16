@@ -74,7 +74,7 @@ function computePrice(
   }
   const totalNano = messages.reduce((sum, m) => sum + BigInt(m.amount), 0n);
   const gram = formatNanoTon(totalNano.toString());
-  return { price: `${gram} GRAM`, numericTotal: Number(gram) };
+  return { price: `${gram} GRAM`, numericTotal: Number(totalNano) / 1e9 };
 }
 
 export function toContent(result: unknown) {
