@@ -20,12 +20,14 @@ export interface BuyResult {
   historyId: string;
   purchaseId: string | null;
   validUntil: number;
+  expectedAmount: string;
   nextStep: string;
 }
 
 const NEXT_STEP =
   "Show the user `summary`, confirm, then call @ton/mcp send_raw_transaction with `messages`. " +
-  "After it returns a txHash, call hoton_confirm with historyId, purchaseId and txHash.";
+  "After it signs, call hoton_confirm with historyId, purchaseId (if present) and expectedAmount — " +
+  "I'll find the settled transaction on-chain and return a tonviewer link.";
 
 export function buildBuyResult(
   resp: BuyResponse,
@@ -56,6 +58,7 @@ export function buildBuyResult(
     historyId: resp.historyId,
     purchaseId: resp.purchaseId ?? null,
     validUntil: tx.validUntil,
+    expectedAmount: tx.messages[0].amount,
     nextStep: NEXT_STEP,
   };
 }

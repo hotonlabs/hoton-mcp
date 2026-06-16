@@ -18,6 +18,7 @@ describe("buildBuyResult", () => {
     expect(r.historyId).toBe("h1");
     expect(r.purchaseId).toBe("p1");
     expect(r.validUntil).toBe(1718000000);
+    expect(r.expectedAmount).toBe("1620000000");
   });
 
   it("sums multiple messages for a bulk GRAM total", () => {
