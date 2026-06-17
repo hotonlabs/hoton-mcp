@@ -19,38 +19,27 @@ agent:  hoton  → confirms it settled on-chain, returns a tonviewer link  ✅
 
 ## What you need
 
-Two MCP servers, running side by side:
+Two MCP servers, running side by side. **You don't install either one** — your agent fetches them automatically on first use via `npx`:
 
-| Server | Does | From |
+| Server | Does | Command |
 |---|---|---|
-| **`hoton`** | builds the order | this repo (you run it) |
-| **`ton`** | the wallet that signs & pays | TON's official [`@ton/mcp`](https://github.com/ton-connect/kit) |
+| **`hoton`** | builds the order | `npx -y hoton-mcp` |
+| **`ton`** | the wallet that signs & pays | `npx -y @ton/mcp@alpha` ([TON's official kit](https://github.com/ton-connect/kit)) |
+
+> You only need **Node.js** on your machine (you already have it if you run any of these agents). `npx` pulls the package from npm the first time and caches it — no `npm install`, no clone, no build.
 
 > **Teleton users:** Teleton has its own built-in TON wallet, so you likely only need **`hoton`** — Teleton signs the transaction itself.
 
----
+## The config (identical for every agent)
 
-## 1. Install
-
-```bash
-git clone https://github.com/hotonlabs/hoton-mcp.git
-cd hoton-mcp
-yarn install
-yarn build
-```
-
-This produces `dist/index.js` — the file your agent will run. Note its full path.
-
-## 2. The config (identical for every agent)
-
-MCP is a standard, so every agent uses the **same** two servers. Only *where you paste this* changes (step 3).
+MCP is a standard, so every agent uses the **same** two servers. Only *where you paste this* changes (below).
 
 ```json
 {
   "mcpServers": {
     "hoton": {
-      "command": "node",
-      "args": ["/absolute/path/to/hoton-mcp/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "hoton-mcp"],
       "env": { "HOTON_BACKEND_URL": "https://hoton.up.railway.app" }
     },
     "ton": { "command": "npx", "args": ["-y", "@ton/mcp@alpha"] }
@@ -58,7 +47,7 @@ MCP is a standard, so every agent uses the **same** two servers. Only *where you
 }
 ```
 
-## 3. Add it to your agent
+## Add it to your agent
 
 ### Telegram agents
 
@@ -69,8 +58,8 @@ MCP is a standard, so every agent uses the **same** two servers. Only *where you
 ```yaml
 mcp_servers:
   hoton:
-    command: node
-    args: ["/absolute/path/to/hoton-mcp/dist/index.js"]
+    command: npx
+    args: ["-y", "hoton-mcp"]
     env:
       HOTON_BACKEND_URL: "https://hoton.up.railway.app"
   ton:
@@ -78,11 +67,11 @@ mcp_servers:
     args: ["-y", "@ton/mcp@alpha"]
 ```
 
-**Teleton** — run `teleton mcp add` (or `teleton setup --ui`) and point it at `node /absolute/path/to/hoton-mcp/dist/index.js`. Teleton's built-in wallet handles signing, so you can skip the `ton` server. ([teletonagent.dev](https://teletonagent.dev))
+**Teleton** — run `teleton mcp add` (or `teleton setup --ui`) and point it at `npx -y hoton-mcp`. Teleton's built-in wallet handles signing, so you can skip the `ton` server. ([teletonagent.dev](https://teletonagent.dev))
 
 ### Desktop / coding agents
 
-**Claude** — Claude Code: `claude mcp add hoton -- node /absolute/path/to/hoton-mcp/dist/index.js` and `claude mcp add ton -- npx -y @ton/mcp@alpha`. Claude Desktop: paste the JSON above into `claude_desktop_config.json`.
+**Claude** — Claude Code: `claude mcp add hoton -- npx -y hoton-mcp` and `claude mcp add ton -- npx -y @ton/mcp@alpha`. Claude Desktop: paste the JSON above into `claude_desktop_config.json`.
 
 **Codex** — add the servers to `~/.codex/config.toml` under `[mcp_servers]`.
 
@@ -112,6 +101,19 @@ mcp_servers:
 ## Referrals
 
 The referrer comes from your prompt. *"buy 50 stars for @monk **on hoton.tg/damx**"* → **damx earns 35%** of the fee. No link → no commission. (First-referrer-wins, enforced by the backend.)
+
+## Run from source (for contributors)
+
+To hack on the server, run it from a local clone instead of npm:
+
+```bash
+git clone https://github.com/hotonlabs/hoton-mcp.git
+cd hoton-mcp
+yarn install
+yarn build
+```
+
+Then point your agent at `node /absolute/path/to/hoton-mcp/dist/index.js` instead of `npx -y hoton-mcp`.
 
 ## Safety
 
