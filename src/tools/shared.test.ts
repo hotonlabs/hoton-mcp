@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { buildBuyResult, toContent, ToolError } from "./shared.js";
+import { buildBuyResult, buildOrder, toContent, ToolError } from "./shared.js";
+import { BackendError } from "../backendClient.js";
 import type { BuyResponse } from "../backendClient.js";
 
 const gramResp: BuyResponse = {
@@ -64,5 +65,22 @@ describe("toContent", () => {
     const c = toContent({ a: 1 });
     expect(c.content[0].type).toBe("text");
     expect(JSON.parse(c.content[0].text)).toEqual({ a: 1 });
+  });
+});
+
+describe("buildOrder", () => {
+  it("returns the value on success", async () => {
+    await expect(buildOrder(async () => 42, { bulk: false })).resolves.toBe(42);
+  });
+  it("passes a ToolError through unchanged", async () => {
+    await expect(buildOrder(async () => { throw new ToolError("nope"); }, { bulk: false })).rejects.toThrowError("nope");
+  });
+  it("turns a bulk 404 into a clear, money-safe message", async () => {
+    await expect(buildOrder(async () => { throw new BackendError("Request failed (404)", 404); }, { bulk: true }))
+      .rejects.toThrowError(/bulk purchases aren't available[\s\S]*no funds moved/i);
+  });
+  it("turns any other backend error into a money-safe message", async () => {
+    await expect(buildOrder(async () => { throw new BackendError("Invalid amount", 400); }, { bulk: false }))
+      .rejects.toThrowError(/Invalid amount[\s\S]*no funds moved/i);
   });
 });

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { AGENT_DEVICE } from "../config.js";
 import { resolveRecipient, resolveReferrer } from "../resolvers.js";
-import { buildBuyResult, ToolError, type PayToken } from "./shared.js";
+import { buildBuyResult, buildOrder, ToolError, type PayToken } from "./shared.js";
 import { requireWallet, type ToolDeps } from "./wallet.js";
 import type { WalletAccount } from "../session.js";
 import type { BulkRecipient, Product } from "../backendClient.js";
@@ -30,40 +30,44 @@ export async function handleBuyStars(
   args: { recipient: string; amount: number; payToken: PayToken; wallet?: WalletAccount; referrer?: string },
   deps: ToolDeps,
 ) {
-  const wallet = requireWallet(deps, args.wallet);
-  const rec = await resolveRecipient(deps.client, args.recipient, "stars");
-  const referrer = await effectiveReferrer(deps, args.referrer);
-  const resp = await deps.client.buyStars({
-    account: accountJson(wallet),
-    device: deviceJson(),
-    receipientId: rec.recipientId,
-    amount: String(args.amount),
-    paymentMethod: args.payToken === "USDT" ? "usdt" : "ton",
-    recipientUsername: rec.username,
-    recipientName: rec.name,
-    ...(referrer ? { referrer } : {}),
-  });
-  return buildBuyResult(resp, args.payToken, `${args.amount}★ → @${rec.username}`, deps.config.maxOrder);
+  return buildOrder(async () => {
+    const wallet = requireWallet(deps, args.wallet);
+    const rec = await resolveRecipient(deps.client, args.recipient, "stars");
+    const referrer = await effectiveReferrer(deps, args.referrer);
+    const resp = await deps.client.buyStars({
+      account: accountJson(wallet),
+      device: deviceJson(),
+      receipientId: rec.recipientId,
+      amount: String(args.amount),
+      paymentMethod: args.payToken === "USDT" ? "usdt" : "ton",
+      recipientUsername: rec.username,
+      recipientName: rec.name,
+      ...(referrer ? { referrer } : {}),
+    });
+    return buildBuyResult(resp, args.payToken, `${args.amount}★ → @${rec.username}`, deps.config.maxOrder);
+  }, { bulk: false });
 }
 
 export async function handleBuyStarsBulk(
   args: { recipients: string[]; amountEach: number; payToken: PayToken; wallet?: WalletAccount; referrer?: string },
   deps: ToolDeps,
 ) {
-  const wallet = requireWallet(deps, args.wallet);
-  const recipients = await resolveMany(deps, args.recipients, "stars");
-  const referrer = await effectiveReferrer(deps, args.referrer);
-  const resp = await deps.client.buyStarsBulk({
-    account: accountJson(wallet),
-    device: deviceJson(),
-    amount: String(args.amountEach),
-    paymentMethod: args.payToken === "USDT" ? "usdt" : "ton",
-    recipients,
-    ...(referrer ? { referrer } : {}),
-  });
-  const total = args.amountEach * recipients.length;
-  const label = `${args.amountEach}★ × ${recipients.length} (${total}★ total)`;
-  return buildBuyResult(resp, args.payToken, label, deps.config.maxOrder);
+  return buildOrder(async () => {
+    const wallet = requireWallet(deps, args.wallet);
+    const recipients = await resolveMany(deps, args.recipients, "stars");
+    const referrer = await effectiveReferrer(deps, args.referrer);
+    const resp = await deps.client.buyStarsBulk({
+      account: accountJson(wallet),
+      device: deviceJson(),
+      amount: String(args.amountEach),
+      paymentMethod: args.payToken === "USDT" ? "usdt" : "ton",
+      recipients,
+      ...(referrer ? { referrer } : {}),
+    });
+    const total = args.amountEach * recipients.length;
+    const label = `${args.amountEach}★ × ${recipients.length} (${total}★ total)`;
+    return buildBuyResult(resp, args.payToken, label, deps.config.maxOrder);
+  }, { bulk: true });
 }
 
 export function registerStarsTools(server: any, deps: ToolDeps, wrap: (fn: () => Promise<unknown>) => Promise<any>) {
@@ -78,7 +82,7 @@ export function registerStarsTools(server: any, deps: ToolDeps, wrap: (fn: () =>
       inputSchema: {
         recipient: z.string().describe("Telegram username, with or without @"),
         amount: z.number().int().min(50).describe("Number of stars to send (minimum 50)"),
-        payToken: payTokenSchema.describe("Pay with GRAM or USDT"),
+        payToken: payTokenSchema.describe("Pay with GRAM (the native chain coin) or USDT"),
         referrer: referrerField,
         wallet: walletField,
       },
@@ -94,7 +98,7 @@ export function registerStarsTools(server: any, deps: ToolDeps, wrap: (fn: () =>
       inputSchema: {
         recipients: z.array(z.string()).min(1).max(10).describe("1–10 Telegram usernames"),
         amountEach: z.number().int().min(50).describe("Stars sent to EACH recipient (minimum 50)"),
-        payToken: payTokenSchema.describe("Pay with GRAM or USDT"),
+        payToken: payTokenSchema.describe("Pay with GRAM (the native chain coin) or USDT"),
         referrer: referrerField,
         wallet: walletField,
       },

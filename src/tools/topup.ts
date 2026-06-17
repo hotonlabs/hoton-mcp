@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { resolveRecipient } from "../resolvers.js";
-import { buildBuyResult, ToolError } from "./shared.js";
+import { buildBuyResult, buildOrder, ToolError } from "./shared.js";
 import { requireWallet, type ToolDeps } from "./wallet.js";
 import { accountJson, deviceJson, effectiveReferrer, resolveMany } from "./buyStars.js";
 import type { WalletAccount } from "../session.js";
@@ -17,38 +17,42 @@ export async function handleTopupTon(
   args: { recipient: string; amount: string; wallet?: WalletAccount; referrer?: string },
   deps: ToolDeps,
 ) {
-  assertAmount(args.amount);
-  const wallet = requireWallet(deps, args.wallet);
-  const rec = await resolveRecipient(deps.client, args.recipient, "ton");
-  const referrer = await effectiveReferrer(deps, args.referrer);
-  const resp = await deps.client.topupTon({
-    account: accountJson(wallet),
-    device: deviceJson(),
-    receipientId: rec.recipientId,
-    amount: args.amount,
-    recipientUsername: rec.username,
-    recipientName: rec.name,
-    ...(referrer ? { referrer } : {}),
-  });
-  return buildBuyResult(resp, "GRAM", `Top up ${args.amount} GRAM → @${rec.username}`, deps.config.maxOrder);
+  return buildOrder(async () => {
+    assertAmount(args.amount);
+    const wallet = requireWallet(deps, args.wallet);
+    const rec = await resolveRecipient(deps.client, args.recipient, "ton");
+    const referrer = await effectiveReferrer(deps, args.referrer);
+    const resp = await deps.client.topupTon({
+      account: accountJson(wallet),
+      device: deviceJson(),
+      receipientId: rec.recipientId,
+      amount: args.amount,
+      recipientUsername: rec.username,
+      recipientName: rec.name,
+      ...(referrer ? { referrer } : {}),
+    });
+    return buildBuyResult(resp, "GRAM", `Top up ${args.amount} GRAM → @${rec.username}`, deps.config.maxOrder);
+  }, { bulk: false });
 }
 
 export async function handleTopupTonBulk(
   args: { recipients: string[]; amountEach: string; wallet?: WalletAccount; referrer?: string },
   deps: ToolDeps,
 ) {
-  assertAmount(args.amountEach);
-  const wallet = requireWallet(deps, args.wallet);
-  const recipients = await resolveMany(deps, args.recipients, "ton");
-  const referrer = await effectiveReferrer(deps, args.referrer);
-  const resp = await deps.client.topupTonBulk({
-    account: accountJson(wallet),
-    device: deviceJson(),
-    amount: args.amountEach,
-    recipients,
-    ...(referrer ? { referrer } : {}),
-  });
-  return buildBuyResult(resp, "GRAM", `Top up ${args.amountEach} GRAM × ${recipients.length}`, deps.config.maxOrder);
+  return buildOrder(async () => {
+    assertAmount(args.amountEach);
+    const wallet = requireWallet(deps, args.wallet);
+    const recipients = await resolveMany(deps, args.recipients, "ton");
+    const referrer = await effectiveReferrer(deps, args.referrer);
+    const resp = await deps.client.topupTonBulk({
+      account: accountJson(wallet),
+      device: deviceJson(),
+      amount: args.amountEach,
+      recipients,
+      ...(referrer ? { referrer } : {}),
+    });
+    return buildBuyResult(resp, "GRAM", `Top up ${args.amountEach} GRAM × ${recipients.length}`, deps.config.maxOrder);
+  }, { bulk: true });
 }
 
 export function registerTopupTools(server: any, deps: ToolDeps, wrap: (fn: () => Promise<unknown>) => Promise<any>) {
@@ -67,7 +71,7 @@ export function registerTopupTools(server: any, deps: ToolDeps, wrap: (fn: () =>
     {
       title: "Top up a Telegram account with GRAM",
       description:
-        "Build an order to top up one Telegram account with GRAM. Returns messages[] to sign with @ton/mcp. GRAM only.",
+        "Build an order to top up one Telegram account with GRAM (the native chain coin). Returns messages[] to sign with @ton/mcp. GRAM only.",
       inputSchema: { recipient: z.string(), amount: amountSchema, referrer: referrerField, wallet: walletField },
     },
     async (args: any) => wrap(() => handleTopupTon(args, deps)),
@@ -78,7 +82,7 @@ export function registerTopupTools(server: any, deps: ToolDeps, wrap: (fn: () =>
     {
       title: "Top up many Telegram accounts with GRAM",
       description:
-        "Build ONE order topping up 1–10 Telegram accounts with the same GRAM amount each. Returns messages[] to sign with @ton/mcp. GRAM only.",
+        "Build ONE order topping up 1–10 Telegram accounts with the same GRAM (native chain coin) amount each. Returns messages[] to sign with @ton/mcp. GRAM only.",
       inputSchema: {
         recipients: z.array(z.string()).min(1).max(10),
         amountEach: amountSchema,

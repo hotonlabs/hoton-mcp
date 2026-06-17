@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { handleBuyStars, handleBuyStarsBulk } from "./buyStars.js";
 import { createSession } from "../session.js";
+import { BackendError } from "../backendClient.js";
 import type { BackendClient } from "../backendClient.js";
 
 const tx = { transaction: { validUntil: 9, messages: [{ address: "EQp", amount: "1620000000", payload: "b" }] }, historyId: "h", purchaseId: "p" };
@@ -59,5 +60,10 @@ describe("handleBuyStarsBulk", () => {
     const many = Array.from({ length: 11 }, (_, i) => `u${i}`);
     await expect(handleBuyStarsBulk({ recipients: many, amountEach: 50, payToken: "GRAM" }, d)).rejects.toThrow(/1 and 10/);
     expect(d.client.buyStarsBulk).not.toHaveBeenCalled();
+  });
+  it("returns a clear money-safe error when the bulk endpoint 404s", async () => {
+    const d = makeDeps({ buyStarsBulk: vi.fn(async () => { throw new BackendError("Request failed (404)", 404); }) });
+    await expect(handleBuyStarsBulk({ recipients: ["alice", "bob"], amountEach: 50, payToken: "GRAM" }, d))
+      .rejects.toThrowError(/bulk purchases aren't available/i);
   });
 });

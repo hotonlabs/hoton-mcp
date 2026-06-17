@@ -1,4 +1,5 @@
 import { formatNanoTon } from "../format.js";
+import { BackendError } from "../backendClient.js";
 import type { BuyResponse, TxMessage } from "../backendClient.js";
 
 export type { WalletAccount } from "../session.js";
@@ -9,6 +10,31 @@ export class ToolError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "ToolError";
+  }
+}
+
+/**
+ * Wraps an order-building operation so any backend/unknown failure becomes a clear,
+ * money-safe ToolError. The MCP only BUILDS orders — it never moves funds — so a failure
+ * here always means nothing was ordered and no money moved. Saying so explicitly also
+ * stops a safety classifier from mistaking a failed build for a real charge. ToolErrors
+ * (validation like "not found" / "1-10 recipients" / "over cap") pass through unchanged.
+ */
+export async function buildOrder<T>(fn: () => Promise<T>, ctx: { bulk: boolean }): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    if (err instanceof ToolError) throw err;
+    if (err instanceof BackendError) {
+      if (err.status === 404 && ctx.bulk) {
+        throw new ToolError(
+          "Bulk purchases aren't available on this backend right now — the bulk endpoints may only exist on a dev/local backend, not production. " +
+          "Nothing was ordered and no funds moved. Use the single-buy tools, or set HOTON_BACKEND_URL to a backend that has bulk enabled.",
+        );
+      }
+      throw new ToolError(`Couldn't build the order — ${err.message}. Nothing was ordered and no funds moved.`);
+    }
+    throw new ToolError(`Couldn't build the order — ${err instanceof Error ? err.message : String(err)}. Nothing was ordered and no funds moved.`);
   }
 }
 

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { resolveRecipient } from "../resolvers.js";
-import { buildBuyResult, type PayToken } from "./shared.js";
+import { buildBuyResult, buildOrder, type PayToken } from "./shared.js";
 import { requireWallet, type ToolDeps } from "./wallet.js";
 import { accountJson, deviceJson, effectiveReferrer, payTokenSchema, resolveMany } from "./buyStars.js";
 import type { WalletAccount } from "../session.js";
@@ -12,38 +12,42 @@ export async function handleBuyPremium(
   args: { recipient: string; months: "3" | "6" | "12"; payToken: PayToken; wallet?: WalletAccount; referrer?: string },
   deps: ToolDeps,
 ) {
-  const wallet = requireWallet(deps, args.wallet);
-  const rec = await resolveRecipient(deps.client, args.recipient, "premium", args.months);
-  const referrer = await effectiveReferrer(deps, args.referrer);
-  const resp = await deps.client.buyPremium({
-    account: accountJson(wallet),
-    device: deviceJson(),
-    receipientId: rec.recipientId,
-    months: args.months,
-    paymentMethod: args.payToken === "USDT" ? "usdt" : "ton",
-    recipientUsername: rec.username,
-    recipientName: rec.name,
-    ...(referrer ? { referrer } : {}),
-  });
-  return buildBuyResult(resp, args.payToken, `Premium ${monthLabel(args.months)} → @${rec.username}`, deps.config.maxOrder);
+  return buildOrder(async () => {
+    const wallet = requireWallet(deps, args.wallet);
+    const rec = await resolveRecipient(deps.client, args.recipient, "premium", args.months);
+    const referrer = await effectiveReferrer(deps, args.referrer);
+    const resp = await deps.client.buyPremium({
+      account: accountJson(wallet),
+      device: deviceJson(),
+      receipientId: rec.recipientId,
+      months: args.months,
+      paymentMethod: args.payToken === "USDT" ? "usdt" : "ton",
+      recipientUsername: rec.username,
+      recipientName: rec.name,
+      ...(referrer ? { referrer } : {}),
+    });
+    return buildBuyResult(resp, args.payToken, `Premium ${monthLabel(args.months)} → @${rec.username}`, deps.config.maxOrder);
+  }, { bulk: false });
 }
 
 export async function handleBuyPremiumBulk(
   args: { recipients: string[]; months: "3" | "6" | "12"; payToken: PayToken; wallet?: WalletAccount; referrer?: string },
   deps: ToolDeps,
 ) {
-  const wallet = requireWallet(deps, args.wallet);
-  const recipients = await resolveMany(deps, args.recipients, "premium", args.months);
-  const referrer = await effectiveReferrer(deps, args.referrer);
-  const resp = await deps.client.buyPremiumBulk({
-    account: accountJson(wallet),
-    device: deviceJson(),
-    months: args.months,
-    paymentMethod: args.payToken === "USDT" ? "usdt" : "ton",
-    recipients,
-    ...(referrer ? { referrer } : {}),
-  });
-  return buildBuyResult(resp, args.payToken, `Premium ${monthLabel(args.months)} × ${recipients.length}`, deps.config.maxOrder);
+  return buildOrder(async () => {
+    const wallet = requireWallet(deps, args.wallet);
+    const recipients = await resolveMany(deps, args.recipients, "premium", args.months);
+    const referrer = await effectiveReferrer(deps, args.referrer);
+    const resp = await deps.client.buyPremiumBulk({
+      account: accountJson(wallet),
+      device: deviceJson(),
+      months: args.months,
+      paymentMethod: args.payToken === "USDT" ? "usdt" : "ton",
+      recipients,
+      ...(referrer ? { referrer } : {}),
+    });
+    return buildBuyResult(resp, args.payToken, `Premium ${monthLabel(args.months)} × ${recipients.length}`, deps.config.maxOrder);
+  }, { bulk: true });
 }
 
 export function registerPremiumTools(server: any, deps: ToolDeps, wrap: (fn: () => Promise<unknown>) => Promise<any>) {
