@@ -1,8 +1,8 @@
 # hoton-mcp
 
-Buy Telegram **Stars**, **Premium**, and **TON top-ups** from a single prompt — *"buy 100 stars for @alice"* — with any AI agent.
+Buy Telegram **Stars** & **Premium**, and top up your Telegram **GRAM** balance — all from a single prompt like *"buy 100 stars for @alice"* — with any AI agent.
 
-`hoton-mcp` is a small, **keyless** MCP server: it builds the order, and your agent's TON wallet pays. It never holds your keys or your money.
+`hoton-mcp` is a small, **keyless** MCP server: it builds the order, and your agent's wallet pays. It never holds your keys or your money.
 
 ---
 
