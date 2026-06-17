@@ -15,7 +15,8 @@ agent → hoton_confirm(historyId, purchaseId, txHash)         → recorded + re
 ## Install
 
 ```bash
-cd mcp
+git clone https://github.com/hotonlabs/hoton-mcp.git
+cd hoton-mcp
 yarn install
 yarn build
 ```
@@ -30,7 +31,7 @@ Add **both** servers:
     "ton": { "command": "npx", "args": ["-y", "@ton/mcp@alpha"] },
     "hoton": {
       "command": "node",
-      "args": ["/absolute/path/to/hoton/mcp/dist/index.js"],
+      "args": ["/absolute/path/to/hoton-mcp/dist/index.js"],
       "env": { "HOTON_BACKEND_URL": "https://hoton.up.railway.app" }
     }
   }
@@ -44,7 +45,7 @@ Env vars:
 | `HOTON_BACKEND_URL` | `https://hoton.up.railway.app` | Backend to call. Use `http://localhost:3000` for local dev. |
 | `HOTON_MAX_ORDER` | (unset) | Optional per-order cap (GRAM for GRAM orders, USDT for USDT). Orders above it are refused. |
 
-> Bulk Premium and bulk top-up require the `dev` branch backend until merged to `main`. Point `HOTON_BACKEND_URL` at a dev/local backend to use them before then.
+> All products support bulk (1–10 recipients in one signature) against the default backend. For local development, point `HOTON_BACKEND_URL` at `http://localhost:3000`.
 
 ## Tools
 
