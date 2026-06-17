@@ -1,18 +1,36 @@
 # hoton-mcp
 
-An MCP server that lets an AI agent buy Telegram **Stars**, **Premium**, and **GRAM top-ups** (single + bulk) on hoton.tg from a prompt.
+Buy Telegram **Stars**, **Premium**, and **TON top-ups** from a single prompt — *"buy 100 stars for @alice"* — with any AI agent.
 
-It is **keyless**: it only builds unsigned orders and confirms them. Paying is done by TON's official **`@ton/mcp`** agentic wallet. You run both side by side.
+`hoton-mcp` is a small, **keyless** MCP server: it builds the order, and your agent's TON wallet pays. It never holds your keys or your money.
+
+---
 
 ## How it works
 
+Three steps, all driven by your agent:
+
 ```
-agent → hoton_buy_stars(...)        → { summary, messages, historyId, purchaseId }
-agent → @ton/mcp.send_raw_transaction(messages)  → txHash   (signs + pays)
-agent → hoton_confirm(historyId, purchaseId, txHash)         → recorded + referral credited
+you:    "buy 100 stars for @alice"
+agent:  hoton  → builds the order (shows the price + an unsigned transaction)
+agent:  wallet → signs & pays  →  txHash
+agent:  hoton  → confirms it settled on-chain, returns a tonviewer link  ✅
 ```
 
-## Install
+## What you need
+
+Two MCP servers, running side by side:
+
+| Server | Does | From |
+|---|---|---|
+| **`hoton`** | builds the order | this repo (you run it) |
+| **`ton`** | the wallet that signs & pays | TON's official [`@ton/mcp`](https://github.com/ton-connect/kit) |
+
+> **Teleton users:** Teleton has its own built-in TON wallet, so you likely only need **`hoton`** — Teleton signs the transaction itself.
+
+---
+
+## 1. Install
 
 ```bash
 git clone https://github.com/hotonlabs/hoton-mcp.git
@@ -21,49 +39,86 @@ yarn install
 yarn build
 ```
 
-## Configure your agent client (Claude Desktop / Cursor / Windsurf)
+This produces `dist/index.js` — the file your agent will run. Note its full path.
 
-Add **both** servers:
+## 2. The config (identical for every agent)
+
+MCP is a standard, so every agent uses the **same** two servers. Only *where you paste this* changes (step 3).
 
 ```json
 {
   "mcpServers": {
-    "ton": { "command": "npx", "args": ["-y", "@ton/mcp@alpha"] },
     "hoton": {
       "command": "node",
       "args": ["/absolute/path/to/hoton-mcp/dist/index.js"],
       "env": { "HOTON_BACKEND_URL": "https://hoton.up.railway.app" }
-    }
+    },
+    "ton": { "command": "npx", "args": ["-y", "@ton/mcp@alpha"] }
   }
 }
 ```
 
-Env vars:
+## 3. Add it to your agent
 
-| Var | Default | Meaning |
-|---|---|---|
-| `HOTON_BACKEND_URL` | `https://hoton.up.railway.app` | Backend to call. Use `http://localhost:3000` for local dev. |
-| `HOTON_MAX_ORDER` | (unset) | Optional per-order cap (GRAM for GRAM orders, USDT for USDT). Orders above it are refused. |
+### Telegram agents
 
-> All products support bulk (1–10 recipients in one signature) against the default backend. For local development, point `HOTON_BACKEND_URL` at `http://localhost:3000`.
+**OpenClaw** — add the two servers to the `mcpServers` section of your `openclaw.json`, then restart. ([MCP guide](https://openclaw-ai.online/mcp/))
+
+**Hermes** — run `hermes mcp add`, or paste this into your config's `mcp_servers:` block ([docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp)):
+
+```yaml
+mcp_servers:
+  hoton:
+    command: node
+    args: ["/absolute/path/to/hoton-mcp/dist/index.js"]
+    env:
+      HOTON_BACKEND_URL: "https://hoton.up.railway.app"
+  ton:
+    command: npx
+    args: ["-y", "@ton/mcp@alpha"]
+```
+
+**Teleton** — run `teleton mcp add` (or `teleton setup --ui`) and point it at `node /absolute/path/to/hoton-mcp/dist/index.js`. Teleton's built-in wallet handles signing, so you can skip the `ton` server. ([teletonagent.dev](https://teletonagent.dev))
+
+### Desktop / coding agents
+
+**Claude** — Claude Code: `claude mcp add hoton -- node /absolute/path/to/hoton-mcp/dist/index.js` and `claude mcp add ton -- npx -y @ton/mcp@alpha`. Claude Desktop: paste the JSON above into `claude_desktop_config.json`.
+
+**Codex** — add the servers to `~/.codex/config.toml` under `[mcp_servers]`.
+
+**Cursor** — paste the JSON above into `.cursor/mcp.json`.
+
+---
+
+## Then just talk to it
+
+- *"is hoton online?"*
+- *"buy 100 stars for @alice"*
+- *"gift @bob 3 months of premium"*
+- *"top up @carol with 5 GRAM"*
+- *"buy 50 stars each for @a, @b and @c"* — bulk, up to 10 in one signature
 
 ## Tools
 
-`hoton_use_wallet`, `hoton_use_referrer`, `hoton_find_recipient`, `hoton_buy_stars`, `hoton_buy_stars_bulk`, `hoton_buy_premium`, `hoton_buy_premium_bulk`, `hoton_topup_gram`, `hoton_topup_gram_bulk`, `hoton_confirm`, `hoton_status`.
+`hoton_use_wallet` · `hoton_use_referrer` · `hoton_find_recipient` · `hoton_buy_stars` (+`_bulk`) · `hoton_buy_premium` (+`_bulk`) · `hoton_topup_gram` (+`_bulk`) · `hoton_confirm` · `hoton_status`
+
+## Settings
+
+| Env var | Default | What it does |
+|---|---|---|
+| `HOTON_BACKEND_URL` | `https://hoton.up.railway.app` | The hoton backend the server talks to. |
+| `HOTON_MAX_ORDER` | (unset) | Optional safety cap — orders above it are refused. |
 
 ## Referrals
 
-The referrer comes from the user's prompt. "buy 50 stars for @damx **on hoton.tg/jeribond**" → jeribond earns 35% of the fee. No link → no commission. First-referrer-wins is enforced by the backend.
+The referrer comes from your prompt. *"buy 50 stars for @monk **on hoton.tg/damx**"* → **damx earns 35%** of the fee. No link → no commission. (First-referrer-wins, enforced by the backend.)
 
-## Manual end-to-end check (run once before calling it done)
+## Safety
 
-Prerequisites: a backend running with a healthy Fragment session (local `cd backend && yarn dev`, or the dev deployment), and `@ton/mcp` configured with a funded **testnet** agentic wallet.
+- **Keyless.** `hoton-mcp` only builds orders — it never holds keys or funds. Your wallet signs.
+- Fund the agent wallet with only what you're willing to spend. You keep the master key and can revoke the agent anytime — see [agents.ton.org](https://agents.ton.org).
+- `HOTON_MAX_ORDER` caps any single order.
 
-1. In the agent client, prompt: **"Set up my hoton wallet"** → agent gets the wallet account from `@ton/mcp` and calls `hoton_use_wallet`.
-2. Prompt: **"Is hoton online?"** → `hoton_status` returns `healthy: true`.
-3. Prompt: **"Buy 50 stars for @<your_test_username>"** → agent calls `hoton_buy_stars`, shows the summary/price.
-4. Approve → agent calls `@ton/mcp.send_raw_transaction` → returns a txHash.
-5. Agent calls `hoton_confirm` → returns `{ historyConfirmed: true }`.
-6. Verify the purchase appears in the backend transaction history for the wallet.
+## License
 
-Record: ✅ if stars arrive and history shows the purchase; otherwise note where it broke (most likely the `account.walletStateInit` shape — see the design spec §6).
+MIT — see [LICENSE](LICENSE).
