@@ -28,8 +28,6 @@ Two MCP servers, running side by side. **You don't install either one** — your
 
 > You only need **Node.js** on your machine (you already have it if you run any of these agents). `npx` pulls the package from npm the first time and caches it — no `npm install`, no clone, no build.
 
-> **Teleton users:** Teleton has its own built-in TON wallet, so you likely only need **`hoton`** — Teleton signs the transaction itself.
-
 ## The config (identical for every agent)
 
 MCP is a standard, so every agent uses the **same** two servers. Only *where you paste this* changes (below).
@@ -66,8 +64,6 @@ mcp_servers:
     command: npx
     args: ["-y", "@ton/mcp@alpha"]
 ```
-
-**Teleton** — run `teleton mcp add` (or `teleton setup --ui`) and point it at `npx -y hoton-mcp`. Teleton's built-in wallet handles signing, so you can skip the `ton` server. ([teletonagent.dev](https://teletonagent.dev))
 
 ### Desktop / coding agents
 
